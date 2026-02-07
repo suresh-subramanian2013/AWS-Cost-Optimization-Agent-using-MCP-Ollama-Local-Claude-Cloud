@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 AWS Cost Optimization System
+# 🚀 AWS Cost Optimization Agent
 
 ### AI-Powered Cost Analysis with MCP Protocol
 
