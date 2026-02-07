@@ -1,129 +1,83 @@
 # AWS Cost Monitoring System with MCP Protocol
-## 🖥️ Local Ollama / ☁️ Claude Cloud - AI-Powered Cost Analysis
+
+> 🖥️ **Local Ollama** / ☁️ **Claude Cloud** - AI-Powered Cost Analysis
 
 A production-ready system that uses the Model Context Protocol (MCP) to connect LLM agents (local Ollama or cloud Claude/GPT) with AWS Cost Explorer and Billing APIs for automated cost analysis and optimization recommendations.
 
+---
+
 ## 🏗️ Architecture Overview
 
-### System Architecture
+### System Components
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         YOUR LOCAL MACHINE                          │
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────┐   │
-│  │  Agent Orchestrator (agent_orchestrator.py)                │   │
-│  │  - Processes natural language queries                      │   │
-│  │  - Manages conversation context                            │   │
-│  │  - Selects and invokes tools                               │   │
-│  └──────────────┬─────────────────────────────┬───────────────┘   │
-│                 │                             │                    │
-│                 │ (localhost:8080)            │ (HTTPS/API)        │
-│                 │                             │                    │
-│  ┌──────────────▼──────────────┐   ┌──────────▼─────────────────┐ │
-│  │  MCP Client                 │   │  LLM Provider (Optional)   │ │
-│  │  (mcp_client.py)            │   │  Choose one:               │ │
-│  │  - Tool discovery           │   │  • OpenAI GPT (Cloud) ☁️   │ │
-│  │  - HTTP communication       │   │  • Anthropic Claude (☁️)   │ │
-│  └──────────────┬──────────────┘   │  • Ollama/Qwen (Local) 🖥️  │ │
-│                 │                   └────────────────────────────┘ │
-│                 │                                                   │
-│  ┌──────────────▼──────────────────────────────────────────────┐  │
-│  │  MCP Server (aws_cost_mcp_server.py)                        │  │
-│  │  Flask Server on localhost:8080                             │  │
-│  │  ┌────────────────────────────────────────────────────────┐ │  │
-│  │  │ Registered Tools:                                      │ │  │
-│  │  │ 1. get_cost_and_usage                                  │ │  │
-│  │  │ 2. get_cost_forecast                                   │ │  │
-│  │  │ 3. get_cost_anomalies                                  │ │  │
-│  │  │ 4. get_service_costs                                   │ │  │
-│  │  │ 5. get_optimization_recommendations                    │ │  │
-│  │  └────────────────────────────────────────────────────────┘ │  │
-│  └──────────────┬──────────────────────────────────────────────┘  │
-│                 │                                                   │
-│  ┌──────────────▼──────────────────────────────────────────────┐  │
-│  │  AWS Cost Service (aws_cost_service.py)                     │  │
-│  │  - boto3 SDK wrapper                                        │  │
-│  │  - Error handling & retries                                 │  │
-│  └──────────────┬──────────────────────────────────────────────┘  │
-│                 │                                                   │
-└─────────────────┼───────────────────────────────────────────────────┘
-                  │ (HTTPS/AWS API)
-                  │
-┌─────────────────▼───────────────────────────────────────────────────┐
-│                          AWS CLOUD ☁️                               │
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────┐   │
-│  │  AWS Cost Explorer API                                     │   │
-│  │  - Cost and usage data                                     │   │
-│  │  - Cost forecasts                                          │   │
-│  │  - Anomaly detection                                       │   │
-│  │  - Rightsizing recommendations                             │   │
-│  │  - Savings Plans recommendations                           │   │
-│  └────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    User[👤 User Query] --> Agent[Agent Orchestrator<br/>agent_orchestrator.py]
+    Agent --> LLM{LLM Provider}
+    LLM --> |Option 1| OpenAI[☁️ OpenAI GPT]
+    LLM --> |Option 2| Claude[☁️ Anthropic Claude]
+    LLM --> |Option 3| Ollama[🖥️ Ollama/Qwen<br/>FREE Local]
+    
+    Agent --> MCPClient[MCP Client<br/>mcp_client.py]
+    MCPClient --> |localhost:8080| MCPServer[MCP Server<br/>aws_cost_mcp_server.py]
+    MCPServer --> AWSService[AWS Cost Service<br/>aws_cost_service.py]
+    AWSService --> |boto3 SDK| AWSCloud[☁️ AWS Cost Explorer API]
+    
+    AWSCloud --> |Cost Data| AWSService
+    AWSService --> MCPServer
+    MCPServer --> MCPClient
+    MCPClient --> Agent
+    LLM --> |Analysis| Agent
+    Agent --> Response[📊 Cost Report]
+    
+    style Ollama fill:#90EE90
+    style OpenAI fill:#87CEEB
+    style Claude fill:#87CEEB
+    style AWSCloud fill:#FFB366
 ```
 
-### Data Flow
+### 🖥️ Local vs ☁️ Cloud
 
+| Component | Runs On | Required | Notes |
+|-----------|---------|----------|-------|
+| **MCP Server** | 🖥️ Your Machine | ✅ | Flask on localhost:8080 |
+| **Agent Orchestrator** | 🖥️ Your Machine | ✅ | Processes queries locally |
+| **MCP Client** | 🖥️ Your Machine | ✅ | HTTP client |
+| **AWS Cost Service** | 🖥️ Your Machine | ✅ | boto3 wrapper |
+| **LLM Provider** | 🖥️ Local OR ☁️ Cloud | ✅ | Choose one option |
+| **AWS Cost Explorer** | ☁️ AWS Cloud | ✅ | Your AWS account |
+
+### 📊 Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Agent as Agent Orchestrator
+    participant LLM as LLM Provider
+    participant MCP as MCP Server
+    participant AWS as AWS Cost Explorer
+    
+    User->>Agent: "What were my costs last month?"
+    Agent->>LLM: Query + Available Tools
+    LLM->>Agent: Use get_cost_and_usage(dates)
+    Agent->>MCP: Invoke Tool
+    MCP->>AWS: API Call
+    AWS->>MCP: Cost Data (JSON)
+    MCP->>Agent: Tool Result
+    Agent->>LLM: Analyze Data
+    LLM->>Agent: Human Summary
+    Agent->>User: "Your costs were $X.XX..."
 ```
-User Query: "What were my AWS costs last month?"
-    │
-    ▼
-┌─────────────────────────────────────────────────────────┐
-│ 1. Agent Orchestrator receives query                    │
-│    - Sends query + available tools to LLM               │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 2. LLM analyzes query and selects tool                  │
-│    - Returns: get_cost_and_usage(start_date, end_date)  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 3. Agent invokes tool via MCP Client                    │
-│    - POST http://localhost:8080/invoke                  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 4. MCP Server routes to AWS Cost Service                │
-│    - Calls get_cost_and_usage() method                  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 5. AWS Cost Service calls AWS API                       │
-│    - boto3.client('ce').get_cost_and_usage()            │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 6. AWS returns cost data                                │
-│    - JSON response with cost breakdown                  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 7. Data flows back through layers                       │
-│    - MCP Server → MCP Client → Agent                    │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 8. Agent sends data to LLM for analysis                 │
-│    - LLM generates human-readable summary               │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│ 9. User receives formatted response                     │
-│    "Your AWS costs last month were $X.XX..."            │
-└─────────────────────────────────────────────────────────┘
-```
+
+### 🔧 Available MCP Tools
+
+The MCP server exposes **5 powerful tools**:
+
+1. **`get_cost_and_usage`** - Retrieve cost data for specified time periods
+2. **`get_cost_forecast`** - Get cost forecasts for future periods  
+3. **`get_cost_anomalies`** - Detect unusual spending patterns
+4. **`get_service_costs`** - Break down costs by AWS service
+5. **`get_optimization_recommendations`** - Fetch AWS optimization suggestions
 
 ## ✨ Key Features
 
@@ -502,5 +456,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📧 Support
 
 For issues and questions, please open an issue on the GitHub repository.
-#   A W S - C o s t - M o n i t o r i n g - O p t i m i z a t i o n - A g e n t - u s i n g - M C P - O l l a m a - L o c a l - C l a u d e - C l o u d -  
+#   A W S - C o s t - M o n i t o r i n g - O p t i m i z a t i o n - A g e n t - u s i n g - M C P - O l l a m a - L o c a l - C l a u d e - C l o u d - 
+ 
  
