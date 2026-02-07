@@ -4,6 +4,22 @@
 
 A production-ready system that uses the Model Context Protocol (MCP) to connect LLM agents (local Ollama or cloud Claude/GPT) with AWS Cost Explorer and Billing APIs for automated cost analysis and optimization recommendations.
 
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![AWS](https://img.shields.io/badge/AWS-Cost_Explorer-orange.svg)](https://aws.amazon.com/aws-cost-management/)
+[![MCP](https://img.shields.io/badge/MCP-Protocol-purple.svg)](https://modelcontextprotocol.io/)
+
+## 📑 Table of Contents
+
+- [Architecture Overview](#️-architecture-overview)
+- [Key Features](#-key-features)
+- [Deployment Options](#-deployment-options)
+- [Quick Start](#-quick-start)
+- [Usage Examples](#-usage-examples)
+- [Testing](#-testing)
+- [AWS IAM Permissions](#-aws-iam-permissions)
+- [Troubleshooting](#-troubleshooting)
+
 ---
 
 ## 🏗️ Architecture Overview
