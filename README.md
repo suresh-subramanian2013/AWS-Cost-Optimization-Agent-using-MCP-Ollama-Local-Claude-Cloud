@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 AWS Cost Monitoring System
+# 🚀 AWS Cost Optimization System
 
 ### AI-Powered Cost Analysis with MCP Protocol
 
